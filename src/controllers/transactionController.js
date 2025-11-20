@@ -51,8 +51,19 @@ exports.createTransaction = (req, res) => {
 exports.getAllTransactions = (req, res) => {
     const userId = req.user.id;
 
+    // ✅ Format tanggal ke YYYY-MM-DD agar konsisten
     const sql = `
-        SELECT t.*, c.name AS category_name
+        SELECT 
+            t.id,
+            t.user_id,
+            t.category_id,
+            t.title,
+            t.amount,
+            t.type,
+            DATE_FORMAT(t.date, '%Y-%m-%d') AS date,
+            t.description,
+            t.created_at,
+            c.name AS category_name
         FROM transactions t
         LEFT JOIN categories c ON t.category_id = c.id
         WHERE t.user_id = ?
@@ -63,6 +74,12 @@ exports.getAllTransactions = (req, res) => {
         if (err) {
             console.error("SQL Error (GET ALL):", err);
             return res.status(500).json({ message: "Database error" });
+        }
+
+        // ✅ Debug: log jumlah dan sample data
+        console.log(`📊 Found ${rows.length} transactions for user ${userId}`);
+        if (rows.length > 0) {
+            console.log("Sample transaction:", rows[0]);
         }
 
         res.json({
@@ -82,9 +99,13 @@ exports.getTransactionById = (req, res) => {
     const userId = req.user.id;
 
     const sql = `
-        SELECT *
-        FROM transactions
-        WHERE id = ? AND user_id = ?
+        SELECT 
+            t.*,
+            DATE_FORMAT(t.date, '%Y-%m-%d') AS date,
+            c.name AS category_name
+        FROM transactions t
+        LEFT JOIN categories c ON t.category_id = c.id
+        WHERE t.id = ? AND t.user_id = ?
         LIMIT 1
     `;
 
